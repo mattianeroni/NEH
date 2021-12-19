@@ -2,6 +2,7 @@ import numpy as np
 import math
 import random
 
+import utils
 
 def _bra (lst, beta = 0.3):
     """
@@ -42,133 +43,62 @@ class Solver (object):
 
         Taillard, E. (1990). Some efficient heuristic methods for the flow shop
         sequencing problem. European Journal of Operational Research, 47(1), 65-74.
+
+        :return: The sequence in which jobs should be processed and the respective
+                makespan.
         """
         # Take useful variables to the stack
-        t = self.problem.processing_times
-        n = self.problem.n_jobs
-        m = self.problem.n_machines
-        # Initialise the solution
-        sequence = [0] * n
+        times = self.problem.processing_times
+        n_jobs = self.problem.n_jobs
+        n_machines = self.problem.n_machines
+        # Initialise the solution and the respective makespan
+        sequence, makespan = [], 0
         # Sort jobs for decreasing processing time on machines.
-        jobs = sorted(list(range(0, self.problem.n_jobs)), key=lambda i: t[i, :].sum(), reverse=True)
-        # Find the best schedule with the first two jobs.
-        M1, M2 = 0, 0
-        for j in range(m):
-            ...
+        jobs = sorted(list(range(0, n_jobs)), key=lambda i: times[i, :].sum(), reverse=True)
+        # Find the best schedule with the first two jobs in an exaustive way.
+        # M1 = Makespan when first job in list is made first.
+        # M2 = Makespan when second job in list is made first.
+        # end1 = End of first job on current machine when first job is made first
+        # end2 = End of second job on current machine when second job is made first
+        first_job, second_job = tuple(jobs[:2])
+        M1, end1 = 0, 0
+        M2, end2 = 0, 0
+        for j in range(n_machines):
+            end1 += times[first_job, j]
+            M1 = max(end1, M1) + times[second_job, j]
+            end2 += times[second_job, j]
+            M2 = max(end2, M2) + times[first_job, j]
+        # First two jobs are scheduled ensuring the minor makespan possible
+        sequence = [second_job, first_job] if M1 > M2 else [first_job, second_job]
+        # For each other job...
+        for k, job in zip(range(2, n_jobs), jobs[2:]):
+            # Init earliest completion time of i-th job on j-th machine
+            e = np.zeros((k+1, n_machines+1))
+            # Init the tail of the i-th job on the j-th machine
+            q = np.zeros((k+1, n_machines+1))
+            # Init the earlie1st relative completion time for the k-th job
+            # in i-th position on j-th machine.
+            f = np.zeros((k+1, n_machines+1))
+            # Initialise the partial minimum makespan after inserting
+            # the k-th job in the i-th position
+            Mmin, position = float("inf"), None
+            # For each position in which the job can be inserted...
+            for i in range(k):
+                # Compute the earliest completion time, the tail, and the
+                # relative completion time
+                for j in range(n_machines):
+                    e[i, j] = max(e[i, j-1], e[i-1, j]) + times[sequence[i], j]
+                    q[k-i-1, n_machines-j-1] = max(q[k-i-1, n_machines-j], q[k-i, n_machines-j-1]) + times[sequence[k-i-1], n_machines-j-1]
+                    f[i, j] = max(f[i, j-1], e[i-1, j]) + times[job, j]
 
-
-
-
-    '''
-    def NEH(self):
-        """
-        1) First, we create a list with our jobs. We sort it depending of the time that each job spend until it finishes.
-        2) We reorganize this list using BR.
-        3) We use NEH to complete our solution
-        4) We return our makespan
-        """
-        #1
-        lista = [(i, i.total_time, j) for j,i in enumerate(self.jobs)]
-        lista.sort(reverse=True, key= lambda x: x[1])
-
-        #2
-        lista = self.reorganize_list(lista)
-
-        #3
-        self.solution.append(lista.pop(0)[0])
-        for _ in range(len(lista)):
-            self.insert(lista)
-
-        #4
-        return [i.time for i in self.machines][-1]
-
-    def insert(self, lista):
-        data = self.seleccionar(lista)[0]
-        best = []
-        for i in range(len(self.solution) + 1):
-            #aux_solution = copy.deepcopy(self.solution)
-            aux_solution = self.copy_solution()
-            #aux_machines = copy.deepcopy(self.machines)
-            aux_machines = [machine(i) for i in range(len(self.machines))]
-            aux_solution = aux_solution[:i] + [data] + aux_solution[i:]
-
-            for j in aux_solution:
-                for k in aux_machines:
-                    if k.id == 0:
-                        k.time += j.time_machines[k.id]
-                    elif aux_machines[k.id - 1].time <= k.time:
-                        k.time += j.time_machines[k.id]
-                    else:
-                        k.time = aux_machines[k.id - 1].time + j.time_machines[k.id]
-
-            best.append((aux_machines[-1].time, aux_machines, aux_solution))
-
-        best.sort(key=operator.itemgetter(0))   # best.sort(key=lambda x: x[0])
-        self.solution = best[0][2]
-        self.machines = best[0][1]
-
-    def multistart_NEH(self):
-        start_time = time.time()
-        best = -1
-        best_planning = ()
-        while self.max_time > time.time() - start_time:
-            makespan = self.NEH()
-            if best == -1 or best > makespan:
-                #best_planning = (copy.deepcopy(self.solution), copy.deepcopy(self.machines), makespan)
-                best_planning = (self.copy_solution(), copy.deepcopy(self.machines), makespan)
-                best = makespan
-            self.solution = []
-            self.machines = [machine(i) for i in range(len(self.machines))]
-
-        self.solution = best_planning[0]
-        makespan_bb = self.bb_makespan()
-        self.show(best_planning)
-        print("Makespan for our black box is: ", makespan_bb)
-
-
-    def bb_makespan(self, save = False):
-        #aux_solution = copy.deepcopy(self.solution)
-        aux_solution = self.copy_solution()
-        if save:
-            data_base = open("data_base.txt","a")
-            if os.stat("data_base.txt").st_size == 0:
-                data_base.write("h" + " Machine_processed_jobs" + " time_of_job_in_machine" + " time_black_box" + " job_class"  + " machine_time" + " job_id" + " machine_id" + "\n")
-        aux_machines = [machine(i) for i in range(len(self.machines))]
-        n = len(self.jobs)
-        for j in aux_solution:
-            for k in aux_machines:
-                if k.processed_jobs == 10:
-                    print()
-                time_black_box = j.black_box(self.h, k, n)
-
-
-                if k.id == 0:
-                    k.time += time_black_box
-                elif aux_machines[k.id - 1].time <= k.time:
-                    k.time += time_black_box
-                else:
-                    k.time = aux_machines[k.id - 1].time + time_black_box
-
-                if save:
-                    data_base.write(str(self.h) + " " + str(k.processed_jobs/len(self.jobs)) + " " + str(j.time_machines[k.id])  + " "  + str(time_black_box) + " " + str(j.job_class)  + " " + str(k.time) + " " + str(j.id) + " " + str(k.id) + "\n")
-                k.processed_jobs += 1
-        if save:
-            data_base.close()
-
-        return aux_machines[-1].time
-
-    def build_dataset(self, n_solutions):
-        """
-        We build "n_solutions" solutions and we introduce the data that we obtained in our data_base.txt.
-        We will use it for doing our learnheuristic.
-        :param n_solutions: Number of solutions that we want in our data base
-        """
-        self.beta = 0.01
-        #copy_machines = copy.deepcopy(self.machines)
-        copy_machines = [machine(i) for i in range(len(self.machines))]
-        for _ in range(n_solutions):
-            self.NEH()
-            self.bb_makespan(save=True)
-            self.solution = []
-            self.machines = copy_machines
-    '''
+            # Partial makespans inserting job in i-th position
+            Mi = np.amax(f + q, axis=1)[:-1]
+            # Find the position where to insert k-th job that minimise the makespan
+            position = np.where(Mi == Mi.min())[0][0]
+            makespan = Mi[position]
+            # Insert the k-th job in the position that minimised the partial makespan
+            sequence.insert(position, job)
+        # Return the sequence and the makespan
+        print(jobs)
+        print(sequence, makespan)
+        return sequence, makespan

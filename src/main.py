@@ -4,7 +4,15 @@ import solver
 
 
 if __name__ == '__main__':
-    problem = readfile("t_j20_m5.txt")
+    problems = utils.readfile("t_j20_m5.txt")
+    problem = problems[3]
+
+    #sequence, makespan = utils.exhaustive(list(range(problem.n_jobs)), problem.processing_times)
+
+
+    algorithm = solver.Solver(problem)
+    sequence, makespan = algorithm.NEH()
+    utils.plot_schedule(sequence, problem.processing_times)
 
 
     #machines = []
