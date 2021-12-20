@@ -89,6 +89,7 @@ class Solver (object):
                 for j in range(n_machines):
                     e[i, j] = max(e[i, j-1], e[i-1, j]) + times[sequence[i], j]
                     q[k-i-1, n_machines-j-1] = max(q[k-i-1, n_machines-j], q[k-i, n_machines-j-1]) + times[sequence[k-i-1], n_machines-j-1]
+                    #q[k-i, n_machines-j] = max(q[k-i, n_machines-j+1], q[k-i+1, n_machines-j]) + times[sequence[k-i-1], n_machines-j]
                     f[i, j] = max(f[i, j-1], e[i-1, j]) + times[job, j]
 
             # Partial makespans inserting job in i-th position
@@ -98,6 +99,7 @@ class Solver (object):
             makespan = Mi[position]
             # Insert the k-th job in the position that minimised the partial makespan
             sequence.insert(position, job)
+
         # Return the sequence and the makespan
         print(jobs)
         print(sequence, makespan)
