@@ -9,13 +9,17 @@ if __name__ == '__main__':
     problem = problems[3]
     #sequence, makespan = utils.exhaustive(list(range(problem.n_jobs)), problem.processing_times)
 
+    #times = problem.processing_times
+    #print("0: ", times[0,:])
+    #print("4: ", times[4,:])
+    #print("6: ", times[6,:])
 
     algorithm = solver.Solver(problem)
     start = time.time()
     sequence, makespan = algorithm.NEH()
     print("Time: ", time.time() - start)
     print("Check: ", utils.makespan(sequence, problem.processing_times))
-    utils.plot_schedule(sequence, problem.processing_times)
+    #utils.plot_schedule(sequence, problem.processing_times)
 
 
     #print(problem)
