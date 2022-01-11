@@ -1,9 +1,5 @@
-## Learnheuristic and reinforcement learning in Flowshops
+## Flowshops optimization
 
-This work comes from a collaboration between:
+Implementation of the Nawaz, Enscore and Ham algorithm (NEH) with the Taillard acceleration described in
 
-- ICSO@IN3 - Comp. Sc. Dept. - Universitat Oberta de Catalunya
-- University of Parma
-- University of Modena and Reggio Emilia
-
-The objective of the collaboration consists in the exploraion and implementation of machine learning approaches into flowshop environments.
+'Taillard, E. (1990). Some efficient heuristic methods for the flow shop sequencing problem. European Journal of Operational Research, 47(1), 65-74.'
